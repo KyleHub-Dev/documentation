@@ -39,13 +39,10 @@ const config: Config = {
     [
       'classic',
       {
-        docs: {
-          sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          // editUrl:
-          //   'https://git.kylehub.dev/tree/main/packages/create-docusaurus/templates/shared/',
-        },
+            docs: {
+              sidebarPath: require.resolve('./sidebars.js'),
+              showLastUpdateTime: true,
+            },
         blog: {
           showReadingTime: true,
           feedOptions: {
