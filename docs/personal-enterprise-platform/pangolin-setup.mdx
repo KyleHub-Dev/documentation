@@ -24,7 +24,7 @@ Before proceeding with the Pangolin installation, ensure you have:
 
 - Proxmox VE host with configured network bridges (see [Proxmox Setup](./proxmox-setup.mdx))
 - OPNsense firewall configured (see [OPNsense Setup](./opnsense-setup.mdx))
-- Domain name (optional, but recommended for HTTPS access via reverse proxy). This should be your base domain as established in the [Prerequisites for the Personal Enterprise Platform](../prerequisites.md).
+- Domain name (optional, but recommended for HTTPS access via reverse proxy). This should be your base domain as established in the [Prerequisites for the Personal Enterprise Platform](./prerequisites.md).
 - Basic understanding of Docker and containerization
 
 ## 1. LXC Container Creation
@@ -176,13 +176,13 @@ sudo ./installer
 
 The installer will prompt you for several basic settings:
 
-- **Do you want to install Pangolin as a cloud-managed (beta) node? (yes/no)**: *My recommendation: `no`*
+- **Cloud Managed**: Do you want to install Pangolin as a cloud-managed (beta) node? (yes/no): **My recommendation**: **`no`**
 - **Base Domain**: Enter your root domain without subdomains (e.g., `yourdomain.com`). *My example: `kylehub.dev` (you should use your own base domain)*
-- **Dashboard Domain**: Press Enter to accept the default `pangolin.yourdomain.com` or enter a custom domain (e.g., `pangolin.kylehub.dev`). *My recommendation: Press Enter (accept default `pangolin.kylehub.dev` or your equivalent)*
+- **Dashboard Domain**: Press Enter to accept the default `pangolin.yourdomain.com` or enter a custom domain (e.g., `pangolin.kylehub.dev`). **My recommendation**: Press **`Enter`**
 - **Let’s Encrypt Email**: Provide an email for SSL certificates and admin login. *My example: `admin@kylehub.dev` (replace with your actual email address)*
-- **Do you want to use Gerbil to allow tunneled connections (yes/no) (default: yes)**: *My recommendation: Press Enter (accept default `yes`)*
-- **Is your server IPv6 capable? (yes/no) (default: yes)**: *My recommendation: Press Enter (accept default `yes`)*
-- **Would you like to run Pangolin as Docker or Podman containers? (default: docker)**: *My recommendation: Press Enter (accept default `docker`)*
+- Do you want to use Gerbil to allow tunneled connections (yes/no) (default: yes): **My recommendation**: Press Enter (accept default **`yes`**)
+- Is your server IPv6 capable? (yes/no) (default: yes): **My recommendation**: Press Enter (accept default **`yes`**, but this can also be disabled)
+- Would you like to run Pangolin as Docker or Podman containers? (default: docker): **My recommendation**: Press Enter (accept default **`docker`**)
 
 #### 3.1.3 Configure email
 
@@ -194,7 +194,7 @@ Choose whether to enable SMTP email functionality:
 *   **Default**: No (recommended for initial setup)
 *   If enabled: You’ll need SMTP server details (host, port, username, password)
 
-*My recommendation: Select `No` for email functionality during initial setup.*
+**My recommendation**: Select **`No`** for email functionality during initial setup.
 
 #### 3.1.4 Start installation
 
@@ -204,243 +204,262 @@ Confirm that you want to install and start the containers:
 *   This process takes 2-3 minutes depending on your internet connection
 *   You’ll see progress indicators as each container is pulled and started.
 
-*My recommendation: Proceed with the installation by selecting `Yes`.*
+**My recommendation**: Proceed with the installation by selecting **`Yes`.**
 
 #### 3.1.5 Install CrowdSec (optional)
 
 The installer will ask if you want to install CrowdSec for additional security:
-*   **Default**: No (recommended for initial setup)
+*   **Default**: No (**recommended for initial setup**)
 *   If enabled: You’ll need to confirm you’re willing to manage CrowdSec configuration
 
 :::warning
-CrowdSec adds complexity and requires manual configuration for optimal security. Only enable if you’re comfortable managing it. 
+CrowdSec adds complexity and requires manual configuration for optimal security. Only enable if you’re comfortable managing it.
 :::
 :::info
 CrowdSec can be installed later if needed. The basic installation provides sufficient security for most use cases.
 :::
 
-
-*My recommendation: Skip CrowdSec for now by selecting `No`.*
-
-After these prompts, the installer will proceed to pull the necessary Docker images and start the Pangolin services. You will then see an overview of the running containers.
-
-
-### 3.2 Method 2: Manual Docker Compose Installation
-
-For more control over the installation process, you can manually set up Pangolin:
-
-```bash
-# Create installation directory
-mkdir -p /opt/pangolin
-cd /opt/pangolin
-
-# Download docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/digpangolin/pangolin/main/docker-compose.yml -o docker-compose.yml
-
-# Create data directories
-mkdir -p data/db data/redis
-
-# Review the docker-compose.yml file (optional)
-cat docker-compose.yml
-
-# Start Pangolin
-docker compose up -d
-
-# Check status
-docker compose ps
-
-# View logs (useful for troubleshooting)
-docker compose logs -f
-```
-
-### 3.3 Create Systemd Service
-
-To ensure Pangolin starts automatically on boot, create a systemd service:
-
-```bash
-cat <<EOF > /etc/systemd/system/pangolin.service
-[Unit]
-Description=Pangolin Infrastructure Management
-Requires=docker.service
-After=docker.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory=/opt/pangolin
-ExecStart=/usr/bin/docker compose up -d
-ExecStop=/usr/bin/docker compose down
-TimeoutStartSec=0
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Enable and start the service
-systemctl enable pangolin.service
-systemctl start pangolin.service
-
-# Check service status
-systemctl status pangolin.service
-```
-
-#### 3.1.5 Install CrowdSec (optional)
-
-:::warning
-CrowdSec adds complexity and requires manual configuration for optimal security. Only enable if you’re comfortable managing it. CrowdSec can be installed later if needed. The basic installation provides sufficient security for most use cases.
-:::
-
-The installer will ask if you want to install CrowdSec for additional security:
-*   **Default**: No (recommended for initial setup)
-*   If enabled: You’ll need to confirm you’re willing to manage CrowdSec configuration
-
-*My recommendation: Skip CrowdSec for now by selecting `No`.*
-
-After these prompts, the installer will proceed to pull the necessary Docker images and start the Pangolin services. You will then see an overview of the running containers.
+**My recommendation**: Skip CrowdSec for now by selecting **`No`.**
 
 #### 3.1.6 Initial Access & Setup Token
 
 Once the installation is complete, the installer will display a **Setup Token**. You must copy and save this token immediately, as it is required for the initial setup of Pangolin.
 
-After obtaining the token, head over to the Pangolin web interface to complete the initial setup:
+## 4. Cloudflare DNS Configuration
 
-`https://pangolin.yourdomain.com/auth/initial-setup`
+Before configuring network access, you need to set up DNS records in Cloudflare to point to your Pangolin server.
 
-(Replace `pangolin.yourdomain.com` with your configured Dashboard Domain.)
+### 4.1 Create DNS A Records
 
-## 4. Initial Configuration
+1. Log in to your [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. Select your domain (e.g., `kylehub.dev`)
+3. Navigate to **DNS > Records**
+4. Create the following two A records:
 
-### 4.1 Access Web Interface
+**Record 1: Base Domain**
+- **Type**: A
+- **Name**: `@` (this represents your base domain)
+- **IPv4 address**: Your server's public IP address (e.g., `203.0.113.50`)
+- **Proxy status**: DNS only (gray cloud icon) - **Important: Do not enable proxy**
+- **TTL**: Auto
 
-Once Pangolin is running, access the web interface:
+**Record 2: Wildcard Subdomain**
+- **Type**: A
+- **Name**: `*` (wildcard for all subdomains)
+- **IPv4 address**: Your server's public IP address (e.g., `203.0.113.50`)
+- **Proxy status**: DNS only (gray cloud icon) - **Important: Do not enable proxy**
+- **TTL**: Auto
 
+:::info Why Gray Cloud (DNS Only)?
+Pangolin manages its own SSL certificates via Let's Encrypt through Traefik. Cloudflare's proxy (orange cloud) would interfere with this process and prevent proper certificate validation. Using "DNS only" allows direct connection to your server while still using Cloudflare's DNS service.
+:::
+
+### 4.2 Verify DNS Propagation
+
+After creating the records, verify they are resolving correctly:
+
+```bash
+# Test base domain
+dig yourdomain.com +short
+
+# Test wildcard (using pangolin subdomain as example)
+dig pangolin.yourdomain.com +short
+
+# Both should return your server's public IP
 ```
-http://<pangolin-container-ip>:8080
-```
 
-For example, if your container IP is `192.168.1.50`:
+DNS propagation typically takes a few minutes but can take up to 24 hours in some cases.
 
-```
-http://192.168.1.50:8080
-```
+## 5. Network and Firewall Configuration
 
-### 4.2 Complete Setup Wizard
+### 5.1 Required Ports
 
-1. **Create Admin Account**:
-   - Set a strong username (avoid using `admin`)
-   - Create a secure password (minimum 12 characters, include uppercase, lowercase, numbers, and symbols)
-   - Provide an email address for notifications
+Pangolin requires only the following ports to be accessible from the internet:
 
-2. **Configure Server Connection**:
-   - Server Name: A descriptive name for your Pangolin instance
-   - Server URL: The URL where Pangolin will be accessed (e.g., `http://192.168.1.50:8080` or `https://pangolin.yourdomain.com`)
+- **Port 80 (HTTP)**: Required for Let's Encrypt certificate validation and HTTP to HTTPS redirect
+- **Port 443 (HTTPS)**: Main access point for Pangolin dashboard and all services
 
-3. **Database Setup**:
-   - The quick install script handles this automatically
-   - Verify database connectivity in the setup wizard
+All other services should be accessed **through Pangolin** and should not be directly exposed to the internet.
 
-4. **Complete Initial Setup**:
-   - Review settings
-   - Click "Finish Setup"
-   - You'll be redirected to the login page
+### 5.2 OPNsense Firewall Rules
 
-### 4.3 First Login
+#### 5.2.1 WAN Rules (Internet Access to Pangolin)
 
-Log in using the admin credentials you created during the setup wizard. You'll be greeted with the Pangolin dashboard.
-
-## 5. Network Configuration
-
-### 5.1 OPNsense Firewall Rules
-
-To allow access to Pangolin from your LAN, configure OPNsense firewall rules:
+Configure OPNsense to allow only necessary traffic from the internet:
 
 1. Log in to OPNsense web interface
-2. Navigate to **Firewall > Rules > LAN**
-3. Click **Add** to create a new rule:
-   - **Action**: Pass
-   - **Interface**: LAN
-   - **Protocol**: TCP
-   - **Source**: LAN net (or specific IP ranges)
-   - **Destination**: Single host or Network - `192.168.1.50` (Pangolin IP)
-   - **Destination Port**: 8080
-   - **Description**: Allow Pangolin Web Access from LAN
-4. Click **Save**
-5. Click **Apply Changes**
+2. Navigate to **Firewall > Rules > WAN**
+3. **Remove or disable any existing "allow all" rules** to follow the principle of least privilege
 
-### 5.2 NGINX Proxy Manager Configuration (Optional)
+**Create Rule 1: Allow HTTP (Port 80)**
+- Click **Add** (arrow pointing down for top of list)
+- **Action**: Pass
+- **Interface**: WAN
+- **Direction**: in
+- **TCP/IP Version**: IPv4
+- **Protocol**: TCP
+- **Source**: any
+- **Destination**: WAN address
+- **Destination port range**: HTTP (80)
+- **Description**: Allow HTTP for Let's Encrypt validation
+- **Category**: Pangolin
+- Click **Save**
 
-For secure external HTTPS access to Pangolin, configure a reverse proxy using NGINX Proxy Manager:
+**Create Rule 2: Allow HTTPS (Port 443)**
+- Click **Add**
+- **Action**: Pass
+- **Interface**: WAN
+- **Direction**: in
+- **TCP/IP Version**: IPv4
+- **Protocol**: TCP
+- **Source**: any
+- **Destination**: WAN address
+- **Destination port range**: HTTPS (443)
+- **Description**: Allow HTTPS for Pangolin Dashboard
+- **Category**: Pangolin
+- Click **Save**
 
-:::info Reverse Proxy Benefits
-Using a reverse proxy provides:
-- SSL/TLS encryption (HTTPS)
-- Domain-based access (e.g., `pangolin.yourdomain.com`)
-- Centralized access control
-- Protection from direct internet exposure
+4. Click **Apply Changes**
+
+:::caution Security Note
+These rules allow traffic from anywhere on the internet. Pangolin's authentication and Traefik's security features will protect your services. However, consider implementing additional security measures such as:
+- Cloudflare Access or VPN for additional authentication layers
+- GeoIP blocking to restrict access to specific countries
+- Rate limiting in Pangolin/Traefik configuration
 :::
 
-#### 5.2.1 Add Proxy Host
+#### 5.2.2 Port Forward Configuration
 
-1. Log in to NGINX Proxy Manager
-2. Navigate to **Hosts > Proxy Hosts**
-3. Click **Add Proxy Host**
-4. Configure the following:
+Create port forwards to direct traffic to your Pangolin LXC container:
 
-**Details Tab:**
-- **Domain Names**: `pangolin.yourdomain.com`
-- **Scheme**: `http`
-- **Forward Hostname/IP**: Pangolin LAN IP (e.g., `192.168.1.50`)
-- **Forward Port**: `8080`
-- **Cache Assets**: No (optional, can enable later)
-- **Block Common Exploits**: Yes (recommended)
-- **Websockets Support**: Yes (important for real-time updates)
-
-**SSL Tab:**
-- **SSL Certificate**: Request a new SSL certificate (Let's Encrypt)
-- **Force SSL**: Yes
-- **HTTP/2 Support**: Yes
-- **HSTS Enabled**: Yes (recommended)
-- **HSTS Subdomains**: No (unless you need it)
-
-5. Click **Save**
-
-#### 5.2.2 DNS Configuration
-
-Configure your DNS provider (e.g., Cloudflare) to point to your Pangolin instance:
-
-**Option A: Direct DNS (A Record)**
-- **Type**: A
-- **Name**: `pangolin` (or your chosen subdomain)
-- **Content**: Your public IP address
-- **Proxy status**: Proxied (if using Cloudflare)
-
-**Option B: Cloudflare Tunnel (Recommended for better security)**
-- Set up a Cloudflare Tunnel pointing to your NGINX Proxy Manager
-- Configure the tunnel to route `pangolin.yourdomain.com` to your Pangolin instance
-
-#### 5.2.3 OPNsense WAN Rules (If Using Direct Access)
-
-If you're exposing Pangolin directly via WAN (not recommended unless using Cloudflare Tunnel or VPN):
-
-1. Navigate to **Firewall > Rules > WAN**
+1. Navigate to **Firewall > NAT > Port Forward**
 2. Click **Add**
-3. Configure:
-   - **Action**: Pass
-   - **Interface**: WAN
-   - **Protocol**: TCP
-   - **Source**: Any (or restrict to specific IPs/countries)
-   - **Destination**: WAN address
-   - **Destination Port**: 443 (HTTPS)
-   - **Description**: Allow HTTPS to NGINX Proxy Manager
-4. Click **Save** and **Apply Changes**
 
-:::caution Security Warning
-Only expose services to the WAN if absolutely necessary. Always use strong authentication, SSL/TLS, and consider implementing additional security measures like fail2ban or IP whitelisting.
+**Port Forward 1: HTTP (80)**
+- **Interface**: WAN
+- **Protocol**: TCP
+- **Destination**: WAN address
+- **Destination port range**: HTTP to HTTP (80 to 80)
+- **Redirect target IP**: `192.168.1.50` (your Pangolin container IP)
+- **Redirect target port**: HTTP (80)
+- **Description**: Port forward HTTP to Pangolin
+- **Category**: Pangolin
+- Click **Save**
+
+**Port Forward 2: HTTPS (443)**
+- **Interface**: WAN
+- **Protocol**: TCP
+- **Destination**: WAN address
+- **Destination port range**: HTTPS to HTTPS (443 to 443)
+- **Redirect target IP**: `192.168.1.50` (your Pangolin container IP)
+- **Redirect target port**: HTTPS (443)
+- **Description**: Port forward HTTPS to Pangolin
+- **Category**: Pangolin
+- Click **Save**
+
+3. Click **Apply Changes**
+
+:::tip
+The port forward rules will automatically create corresponding firewall rules. You can verify this by checking **Firewall > Rules > WAN** where you should see auto-generated rules for your port forwards.
 :::
 
-## 6. Connecting Servers to Pangolin
+#### 5.2.3 LAN Rules (Internal Access)
 
-### 6.1 Install Pangolin Agent
+Allow your internal network to access Pangolin:
+
+1. Navigate to **Firewall > Rules > LAN**
+2. Click **Add**
+
+**LAN Rule: Allow Access to Pangolin**
+- **Action**: Pass
+- **Interface**: LAN
+- **Direction**: in
+- **TCP/IP Version**: IPv4
+- **Protocol**: TCP
+- **Source**: LAN net
+- **Destination**: Single host or Network - `192.168.1.50`
+- **Destination port range**: From HTTP to HTTPS (80 to 443)
+- **Description**: Allow LAN access to Pangolin
+- **Category**: Pangolin
+- Click **Save**
+
+3. Click **Apply Changes**
+
+### 5.3 Verify Firewall Configuration
+
+Test your firewall configuration:
+
+```bash
+# From an external network (not your LAN), test HTTPS access
+curl -I https://pangolin.yourdomain.com
+
+# Should return HTTP/2 200 or similar response
+
+# Test that other ports are blocked
+nc -zv your-server-ip 8080
+# Should timeout or show "Connection refused"
+```
+
+## 6. Initial Pangolin Access
+
+### 6.1 Access Pangolin Dashboard
+
+1. Open your web browser
+2. Navigate to: `https://pangolin.yourdomain.com`
+3. You should see the Pangolin setup page
+4. Enter the **Setup Token** that was displayed at the end of the installation (Section 3.1.6)
+
+:::warning
+If you didn't save the setup token, you can retrieve it by running this command on the Pangolin container:
+```bash
+cd /opt/pangolin
+docker compose logs pangolin | grep "Setup Token"
+```
+:::
+
+### 6.2 Complete Initial Setup
+
+Follow the on-screen prompts to:
+1. Create your admin account
+2. Configure basic settings
+3. Set up your organization details
+4. Configure notification preferences (optional)
+
+## 7. Adding Services to Pangolin
+
+All services in your infrastructure should be accessed through Pangolin, not directly exposed to the internet.
+
+### 7.1 Service Access Pattern
+
+The recommended pattern for accessing services is:
+
+```
+Internet → Port 443 → OPNsense → Pangolin (Traefik) → Individual Services
+```
+
+This means:
+- Services like Proxmox, AdGuard, NGINX Proxy Manager, etc., should **NOT** have direct WAN access
+- Access them via subdomains routed through Pangolin (e.g., `proxmox.yourdomain.com`, `adguard.yourdomain.com`)
+- Pangolin's Traefik reverse proxy will handle SSL termination and routing
+
+### 7.2 Adding a Service to Pangolin
+
+To add a service (e.g., Proxmox web interface):
+
+1. In Pangolin dashboard, navigate to **Services** or **Containers**
+2. Click **Add Service**
+3. Configure the service:
+   - **Name**: Proxmox
+   - **URL/Address**: `https://192.168.1.2:8006` (internal Proxmox IP)
+   - **Subdomain**: `proxmox` (will create `proxmox.yourdomain.com`)
+   - **SSL**: Let Traefik handle SSL
+4. Save the configuration
+5. Pangolin will automatically:
+   - Request SSL certificate from Let's Encrypt
+   - Configure Traefik routing
+   - Make service accessible via `https://proxmox.yourdomain.com`
+
+### 7.3 Connecting Servers to Pangolin
 
 To monitor and manage servers with Pangolin, install the Pangolin agent on each target server:
 
@@ -450,7 +469,7 @@ To monitor and manage servers with Pangolin, install the Pangolin agent on each 
 
 ```bash
 curl -fsSL https://get.digpangolin.com/agent.sh | bash -s -- \
-  --url=http://192.168.1.50:8080 \
+  --url=https://pangolin.yourdomain.com \
   --token=<your-unique-token>
 ```
 
@@ -458,57 +477,126 @@ curl -fsSL https://get.digpangolin.com/agent.sh | bash -s -- \
 5. The agent will install and automatically connect to your Pangolin instance
 6. Verify the connection in the Pangolin dashboard under **Servers**
 
-### 6.2 Agent Configuration
+:::tip
+For Proxmox host and LXC containers, you may need to install the agent separately on each system you want to monitor.
+:::
 
-The Pangolin agent configuration is typically located at `/etc/pangolin/agent.conf`. You can modify settings such as:
+## 8. Security Best Practices
 
-- Update frequency
-- Monitored metrics
-- Custom scripts
-- Alert thresholds
+### 8.1 Access Control
 
-After modifying the configuration, restart the agent:
+- **Strong Authentication**: Use strong, unique passwords (minimum 16 characters)
+- **API Tokens**: Regularly rotate API tokens and limit their scope
+- **Session Management**: Configure appropriate session timeouts in Pangolin
+
+### 8.2 Network Security
+
+- **Minimize Exposure**: Only ports 80 and 443 should be accessible from WAN
+- **Internal Access**: All other services should only be accessible through Pangolin or via VPN
+- **Monitoring**: Regularly review access logs in Pangolin and OPNsense
+
+### 8.3 SSL/TLS Configuration
+
+- Pangolin's Traefik automatically handles SSL certificates via Let's Encrypt
+- Certificates auto-renew before expiration
+- Monitor certificate status in Pangolin dashboard
+
+### 8.4 Regular Updates
+
+Keep Pangolin and its dependencies up to date:
 
 ```bash
-systemctl restart pangolin-agent
+# Update Pangolin (run inside Pangolin container)
+cd /opt/pangolin
+docker compose pull
+docker compose up -d
+
+# Update system packages
+apt update && apt upgrade -y
 ```
 
-## 7. Post-Installation Configuration
+## 9. Troubleshooting
 
-### 7.1 Configure Monitoring
+### 9.1 Cannot Access Pangolin Dashboard
 
-Set up monitoring for your infrastructure:
+**Check DNS Resolution:**
+```bash
+# Verify DNS is pointing to your server
+dig pangolin.yourdomain.com +short
+# Should return your server's public IP
+```
 
-1. Navigate to **Monitoring > Alerts**
-2. Configure alert rules for:
-   - CPU usage thresholds
-   - Memory usage thresholds
-   - Disk space warnings
-   - Service availability
-   - Docker container status
+**Check Port Forwarding:**
+- Verify OPNsense port forwards are active
+- Check that WAN firewall rules allow ports 80 and 443
+- Ensure Pangolin container is running: `docker compose ps`
 
-3. Set up notification channels:
-   - Email notifications
-   - Webhook integrations (e.g., Slack, Discord)
-   - SMS alerts (if configured)
+**Check Traefik Logs:**
+```bash
+cd /opt/pangolin
+docker compose logs traefik
+```
 
-### 7.2 Deploy Containers via Pangolin
+### 9.2 SSL Certificate Issues
 
-Pangolin can deploy and manage Docker containers across your infrastructure:
+If Let's Encrypt certificates fail to generate:
 
-1. Navigate to **Containers > Deploy**
-2. Choose deployment method:
-   - **Docker Compose**: Paste your `docker-compose.yml` content
-   - **Single Container**: Configure individual container settings
-   - **Template**: Use pre-configured templates
+**Verify HTTP Challenge is Accessible:**
+```bash
+# From external network
+curl -I http://pangolin.yourdomain.com/.well-known/acme-challenge/test
+# Should reach your server (404 is expected, connection refused is not)
+```
 
-3. Select target server(s)
-4. Configure environment variables and volumes
-5. Click **Deploy**
+**Check Traefik Certificate Resolver:**
+```bash
+# View certificate resolver logs
+docker compose logs traefik | grep -i "certificate"
+```
 
-### 7.3 Backup Configuration
+**Common Issues:**
+- Port 80 not accessible from internet (required for HTTP challenge)
+- DNS not pointing to correct IP
+- Cloudflare proxy enabled (must be gray cloud/DNS only)
+- Rate limiting from Let's Encrypt (limit is 5 certificates per domain per week)
 
-Implement a backup strategy for Pangolin data:
+### 9.3 Services Not Accessible Through Pangolin
+
+**Verify Service Configuration:**
+- Check service is running and accessible from Pangolin container
+- Verify internal IP addresses and ports are correct
+- Test connectivity: `curl http://192.168.1.x:port` from Pangolin container
+
+**Check Traefik Routing:**
+```bash
+# View Traefik dashboard (if enabled)
+# Or check logs for routing errors
+docker compose logs traefik | grep -i error
+```
+
+### 9.4 Agent Connection Issues
+
+If servers can't connect to Pangolin:
+
+**Check Agent URL:**
+- Ensure using `https://pangolin.yourdomain.com` (not IP address)
+- Verify DNS resolution from target server
+
+**Check Firewall:**
+- Ensure LAN firewall rules allow traffic to Pangolin
+- Verify no firewall on target server blocking outbound HTTPS
+
+**Check Agent Logs:**
+```bash
+# On target server
+journalctl -u pangolin-agent -f
+```
+
+## 10. Backup and Recovery
+
+### 10.1 Backup Pangolin Configuration
+
+Create a backup script for Pangolin data:
 
 ```bash
 # Create backup script
@@ -517,17 +605,16 @@ cat <<'EOF' > /opt/pangolin/backup.sh
 BACKUP_DIR="/opt/pangolin/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-# Create backup directory
 mkdir -p "$BACKUP_DIR"
 
-# Stop Pangolin
+# Stop containers
 cd /opt/pangolin
 docker compose down
 
-# Backup data
+# Backup data directory
 tar -czf "$BACKUP_DIR/pangolin-backup-$TIMESTAMP.tar.gz" data/
 
-# Restart Pangolin
+# Restart containers
 docker compose up -d
 
 # Remove backups older than 30 days
@@ -536,311 +623,52 @@ find "$BACKUP_DIR" -name "pangolin-backup-*.tar.gz" -mtime +30 -delete
 echo "Backup completed: pangolin-backup-$TIMESTAMP.tar.gz"
 EOF
 
-# Make script executable
 chmod +x /opt/pangolin/backup.sh
 
-# Add to crontab (daily at 2 AM)
+# Schedule daily backups at 2 AM
 (crontab -l 2>/dev/null; echo "0 2 * * * /opt/pangolin/backup.sh >> /var/log/pangolin-backup.log 2>&1") | crontab -
 ```
 
-### 7.4 Restore from Backup
+### 10.2 Restore from Backup
 
 To restore Pangolin from a backup:
 
 ```bash
-# Stop Pangolin
 cd /opt/pangolin
 docker compose down
-
-# Remove current data
 rm -rf data/
-
-# Extract backup
 tar -xzf backups/pangolin-backup-YYYYMMDD_HHMMSS.tar.gz
-
-# Restart Pangolin
 docker compose up -d
 ```
 
-## 8. Integration with Existing Services
-
-### 8.1 Zitadel Integration (Optional)
-
-If you have [Zitadel](./zitadel-setup.md) set up for identity management, you can integrate Pangolin:
-
-1. In Zitadel, create a new application for Pangolin
-2. Configure OAuth2/OIDC settings
-3. In Pangolin, navigate to **Settings > Authentication**
-4. Enable OIDC authentication
-5. Enter Zitadel connection details:
-   - Issuer URL
-   - Client ID
-   - Client Secret
-   - Scopes (e.g., `openid profile email`)
-
-### 8.2 Connect to Proxmox
-
-Add your Proxmox host as a server in Pangolin:
-
-1. Install Pangolin agent on Proxmox host
-2. Configure monitoring for:
-   - VM status
-   - Resource usage
-   - Storage utilization
-3. Set up alerts for critical events
-
-### 8.3 Monitor Other Services
-
-Connect Pangolin to other services in your infrastructure:
-
-- [AdGuard Home](./adguard-home-setup.mdx): Monitor DNS query statistics
-- [Services](./services/): Deploy and monitor containerized applications
-- Docker hosts: Install agents on all Docker servers
-
-## 9. Troubleshooting
-
-### 9.1 Container Won't Start
-
-If the LXC container fails to start or Docker services won't run:
-
-**Verify Container Configuration:**
-```bash
-# Check container config on Proxmox host
-cat /etc/pve/lxc/<CTID>.conf
-```
-
-Ensure these lines are present:
-```
-lxc.apparmor.profile: unconfined
-lxc.cgroup2.devices.allow: a
-lxc.cap.drop:
-lxc.mount.auto: proc:rw sys:rw
-```
-
-**Check Container Options:**
-- Verify that **Nesting** is enabled
-- Verify that **Keyctl** is enabled
-- Ensure the container is **Privileged**
-
-### 9.2 Can't Access Web Interface
-
-If you cannot access the Pangolin web interface:
-
-**Check if Pangolin is running:**
-```bash
-docker compose ps
-docker compose logs
-```
-
-**Verify network connectivity:**
-```bash
-# Check container IP
-ip addr show
-
-# Test internet connectivity
-ping -c 4 8.8.8.8
-
-# Test DNS resolution
-nslookup google.com
-```
-
-**Verify firewall rules:**
-- Check OPNsense LAN rules
-- Verify no blocking rules in OPNsense
-- Test access from different devices on your LAN
-
-### 9.3 Docker Compose Errors
-
-If you encounter Docker Compose version compatibility issues:
-
-```bash
-# Check Docker Compose version
-docker compose version
-
-# Update Docker Compose plugin
-apt update
-apt install --only-upgrade docker-compose-plugin
-
-# Verify installation
-docker compose version
-```
-
-### 9.4 Agent Connection Issues
-
-If servers can't connect to Pangolin:
-
-**Check Pangolin URL accessibility from target server:**
-```bash
-curl http://192.168.1.50:8080
-```
-
-**Verify firewall rules allow agent traffic:**
-- OPNsense LAN rules
-- Target server firewall (if any)
-
-**Check agent logs on target server:**
-```bash
-journalctl -u pangolin-agent -f
-```
-
-**Regenerate agent token:**
-1. In Pangolin dashboard, go to **Servers**
-2. Remove the server
-3. Add server again with a new token
-4. Re-run installation command on target server
-
-### 9.5 Database Connection Errors
-
-If Pangolin reports database connection issues:
-
-```bash
-# Check database container
-docker compose ps | grep db
-
-# View database logs
-docker compose logs db
-
-# Restart database container
-docker compose restart db
-
-# If issues persist, recreate containers
-docker compose down
-docker compose up -d
-```
-
-## 10. Security Best Practices
-
-### 10.1 Strong Authentication
-
-- Use strong, unique passwords (minimum 16 characters)
-- Enable two-factor authentication (if available in future versions)
-- Regularly rotate passwords and API tokens
-- Implement IP whitelisting where possible
-
-### 10.2 Network Segmentation
-
-- Keep Pangolin on your internal LAN (`vmbr1`)
-- Use NGINX Proxy Manager for external access
-- Implement Cloudflare Tunnel or VPN for remote access
-- Never expose Pangolin directly to the internet without proper security measures
-
-### 10.3 Regular Updates
-
-Keep Pangolin and its dependencies up to date:
-
-```bash
-# Update Pangolin
-cd /opt/pangolin
-docker compose pull
-docker compose up -d
-
-# Update system packages
-apt update && apt upgrade -y
-
-# Update Docker
-apt install --only-upgrade docker-ce docker-ce-cli containerd.io docker-compose-plugin
-```
-
-### 10.4 Log Monitoring
-
-Regularly review Pangolin logs for suspicious activity:
-
-```bash
-# View Pangolin logs
-docker compose logs --tail=100 -f
-
-# Check for failed login attempts
-docker compose logs | grep -i "failed\|error\|unauthorized"
-```
-
-## 11. Maintenance
-
-### 11.1 Regular Health Checks
-
-Create a health check script:
-
-```bash
-cat <<'EOF' > /opt/pangolin/health-check.sh
-#!/bin/bash
-echo "=== Pangolin Health Check ===$(date) ==="
-
-# Check if Pangolin is running
-if docker compose ps | grep -q "Up"; then
-    echo "✓ Pangolin is running"
-else
-    echo "✗ Pangolin is not running"
-    docker compose up -d
-fi
-
-# Check disk space
-DISK_USAGE=$(df -h /opt/pangolin | awk 'NR==2 {print $5}' | sed 's/%//')
-if [ "$DISK_USAGE" -gt 80 ]; then
-    echo "✗ Warning: Disk usage is at ${DISK_USAGE}%"
-else
-    echo "✓ Disk usage is healthy (${DISK_USAGE}%)"
-fi
-
-# Check Docker service
-if systemctl is-active --quiet docker; then
-    echo "✓ Docker service is active"
-else
-    echo "✗ Docker service is not active"
-fi
-
-echo "==================================="
-EOF
-
-chmod +x /opt/pangolin/health-check.sh
-
-# Schedule weekly health checks
-(crontab -l 2>/dev/null; echo "0 8 * * 1 /opt/pangolin/health-check.sh >> /var/log/pangolin-health.log 2>&1") | crontab -
-```
-
-### 11.2 Log Rotation
-
-Configure log rotation to prevent disk space issues:
-
-```bash
-cat <<'EOF' > /etc/logrotate.d/pangolin
-/var/log/pangolin-*.log {
-    daily
-    rotate 14
-    compress
-    delaycompress
-    missingok
-    notifempty
-}
-EOF
-```
-
-## 12. Additional Resources
+## 11. Additional Resources
 
 ### Official Documentation
 
 - [Pangolin Official Docs](https://docs.digpangolin.com/)
 - [Pangolin GitHub Repository](https://github.com/digpangolin/pangolin)
-- [Docker Documentation](https://docs.docker.com/)
-- [Docker Compose Documentation](https://docs.docker.com/compose/)
+- [Traefik Documentation](https://doc.traefik.io/traefik/)
+- [Let's Encrypt Documentation](https://letsencrypt.org/docs/)
+
+### Related Documentation
+
+- [Proxmox Setup](./proxmox-setup.mdx)
+- [OPNsense Setup](./opnsense-setup.mdx)
+- [AdGuard Home Setup](./adguard-home-setup.mdx)
 
 ### Community Resources
 
 - [Proxmox VE Helper Scripts](https://community-scripts.github.io/ProxmoxVE/)
 - [Docker in LXC Guide](https://pve.proxmox.com/wiki/Linux_Container#pct_container_storage)
 
-### Related Videos
-
-For additional insights, particularly regarding firewall configuration and general inspiration for setting up services like NGINX Proxy Manager, you might find this video helpful:
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/NAOcvjX-vxQ?si=Mq0yvLmGCXRYXkQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
 ## Next Steps
 
 After setting up Pangolin successfully:
 
-1. **Deploy Your First Service**: Use Pangolin to deploy a simple containerized application to test functionality
-2. **Set Up Monitoring Alerts**: Configure alerts for critical infrastructure events
-3. **Integrate with Existing Services**: Connect Pangolin with other services in your [Personal Enterprise Platform](./prerequisites.md)
-4. **Explore Automation**: Use Pangolin's API to automate deployments and management tasks
+1. **Add Your First Service**: Configure access to Proxmox through Pangolin
+2. **Install Agents**: Deploy Pangolin agents to servers you want to monitor
+3. **Configure Monitoring**: Set up alerts for critical infrastructure events
+4. **Deploy Services**: Use Pangolin to deploy and manage containerized applications
 5. **Document Your Setup**: Keep notes on your specific configurations and customizations
 
-Congratulations! You now have a powerful infrastructure management platform running on your Proxmox setup.
+Congratulations! You now have a secure, centralized infrastructure management platform with all services accessible through a single entry point.
