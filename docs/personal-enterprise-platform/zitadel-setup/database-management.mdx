@@ -1,0 +1,29 @@
+---
+title: Database Management
+sidebar_position: 6
+tags:
+  - Database
+  - PostgreSQL
+  - Backup
+  - Restore
+---
+
+# Database Management
+
+## 1. Access PostgreSQL
+
+```bash
+sudo -u postgres psql -d zitadel
+```
+
+## 2. Backup Database
+
+```bash
+sudo -u postgres pg_dump zitadel > /root/zitadel_backup.sql
+```
+
+## 3. Restore Database
+
+```bash
+sudo -u postgres psql zitadel < /root/zitadel_backup.sql
+```

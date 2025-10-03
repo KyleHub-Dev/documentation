@@ -1,0 +1,63 @@
+---
+title: Installation
+sidebar_position: 2
+tags:
+  - Installation
+  - Proxmox
+  - LXC
+  - Container
+---
+
+# Installation Steps
+
+## 1. Access Proxmox Shell
+
+1. Log into your Proxmox web interface
+2. Select your Proxmox node from the left sidebar
+3. Click **Shell** to open the terminal
+
+## 2. Run the Installation Script
+
+Execute the following command:
+
+```bash
+bash -c "$(wget -qLO - https://github.com/community-scripts/ProxmoxVE/raw/main/ct/zitadel.sh)"
+```
+
+## 3. Configure Installation Options
+
+The script will present you with a menu. Choose from:
+
+### 3.1 Default Settings (Recommended)
+- **Container Type**: Unprivileged
+- **Disk Size**: 8 GB
+- **CPU Cores**: 1
+- **RAM**: 1024 MiB
+- **Operating System**: Debian 12
+
+### 3.2 Advanced Settings
+
+Customize the following parameters:
+- Container ID
+- Hostname
+- CPU cores (1+)
+- RAM (1024+ MiB recommended)
+- Disk size (8+ GB recommended)
+- Network configuration (DHCP or static IP)
+- IPv6 settings
+- DNS settings
+- SSH access
+- Root password
+
+## 4. Wait for Installation
+
+The script will:
+1. Download the Debian 12 template (if not already cached)
+2. Create the LXC container
+3. Install system dependencies
+4. Set up PostgreSQL database
+5. Download and configure Zitadel
+6. Initialize the database schema
+7. Start the Zitadel service
+
+This process typically takes 3-5 minutes.

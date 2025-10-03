@@ -1,0 +1,50 @@
+---
+title: Container Management
+sidebar_position: 5
+tags:
+  - Management
+  - Start/Stop
+  - Update
+  - Logs
+---
+
+# Container Management
+
+## 1. Start/Stop/Restart Zitadel
+
+From Proxmox host:
+```bash
+pct start <container-id>
+pct stop <container-id>
+pct restart <container-id>
+```
+
+From inside container:
+```bash
+systemctl start zitadel
+systemctl stop zitadel
+systemctl restart zitadel
+systemctl status zitadel
+```
+
+## 2. Update Zitadel
+
+To update to the latest version, run from the container:
+
+```bash
+bash -c "$(wget -qLO - https://github.com/community-scripts/ProxmoxVE/raw/main/ct/zitadel.sh)"
+```
+
+Select **Option 1** (Update) from the menu.
+
+## 3. Access Container Shell
+
+```bash
+pct enter <container-id>
+```
+
+## 4. View Logs
+
+```bash
+journalctl -u zitadel -f
+```

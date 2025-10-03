@@ -1,0 +1,29 @@
+---
+title: Integration Examples
+sidebar_position: 9
+tags:
+  - Integration
+  - OIDC
+  - OAuth2
+  - Applications
+---
+
+# Integration Examples
+
+## 1. Connect Application to Zitadel
+
+1. Log into Zitadel console
+2. Navigate to your organization
+3. Create a new project
+4. Add an application (Web, API, or Native)
+5. Configure redirect URIs
+6. Note the client ID and client secret
+7. Use OIDC/OAuth2 endpoints in your application
+
+## 2. Common Integration Points
+
+- **Issuer URL**: `http://YOUR_IP:8080`
+- **Authorization Endpoint**: `http://YOUR_IP:8080/oauth/v2/authorize`
+- **Token Endpoint**: `http://YOUR_IP:8080/oauth/v2/token`
+- **UserInfo Endpoint**: `http://YOUR_IP:8080/oidc/v1/userinfo`
+- **JWKS URI**: `http://YOUR_IP:8080/oauth/v2/keys`

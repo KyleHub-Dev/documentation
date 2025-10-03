@@ -1,0 +1,65 @@
+---
+title: Network Configuration
+sidebar_position: 4
+tags:
+  - Network
+  - Domain
+  - HTTPS
+  - Reverse Proxy
+---
+
+# Network Configuration
+
+## 1. Change External Domain
+
+By default, Zitadel uses the container's IP address. To use a custom domain:
+
+1. Edit the configuration:
+```bash
+nano /opt/zitadel/config.yaml
+```
+
+2. Update the `ExternalDomain` field:
+```yaml
+ExternalDomain: auth.yourdomain.com
+ExternalSecure: true  # Set to true for HTTPS
+```
+
+3. Apply changes:
+```bash
+~/zitadel-rerun.sh
+```
+
+## 2. Enable HTTPS/TLS
+
+For production use, enable TLS:
+
+```yaml
+TLS:
+  Enabled: true
+  CertPath: "/path/to/cert.pem"
+  KeyPath: "/path/to/key.pem"
+```
+
+## 3. Reverse Proxy Setup
+
+For production deployments, use a reverse proxy (nginx, Traefik, Caddy):
+
+Example Nginx configuration:
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name auth.yourdomain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://YOUR_ZITADEL_IP:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
