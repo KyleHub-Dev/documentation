@@ -166,6 +166,12 @@ For a minimal setup, you could consider:
 *   **CPU**: 2 cores
 *   **RAM**: 2GB
 
+:::tip Console Configuration
+During VM creation, leave the **Display** setting as **Default (SPICE)**. While SPICE doesn't support copy/paste directly in the console, you can use the noVNC web console in Proxmox for better compatibility. 
+
+**Note**: Serial terminal option requires additional configuration inside OPNsense after installation and won't work immediately. The recommended approach is to complete the initial setup via SPICE/noVNC console, then enable SSH access for easier administration with full copy/paste support.
+:::
+
 ### 2.3 Network Interfaces
 
 Configure the network interfaces for the OPNsense VM within Proxmox:
@@ -201,7 +207,39 @@ Proceed through the initial setup wizard in the OPNsense web interface. Key conf
 *   Setting primary and secondary DNS servers.
 *   Configuring the internal LAN IP address (e.g., `192.168.1.1/24`) for your internal network.
 
-### 3.3 Temporary Firewall Rule
+### 3.3 Configure Alternative Hostnames
+
+To prevent DNS Rebinding check issues when accessing OPNsense through a domain name, you need to configure alternative hostnames:
+
+1.  Navigate to **System → Settings → Administration**
+2.  In the **Alternate Hostnames** field, add your domain (e.g., `opnsense.yourdomain.com`)
+3.  Click **Save**
+
+:::tip DNS Rebinding Protection
+OPNsense's DNS Rebinding protection prevents access to the web interface via domain names that aren't explicitly configured. Adding your domain here ensures you can access the interface through your reverse proxy or custom DNS setup without triggering security warnings.
+:::
+
+### 3.4 Enable SSH Access (Recommended)
+
+For easier administration with full copy/paste support, enable SSH access:
+
+1.  Navigate to **System → Settings → Administration**
+2.  Check **Enable Secure Shell**
+3.  Optionally change the SSH port (default is 22)
+4.  Under **Authentication**, ensure **Permit Root Login** is enabled (or create a separate admin user)
+5.  **Permit password login** can be enabled initially (consider switching to key-based authentication later)
+6.  Click **Save**
+
+Now you can SSH into OPNsense from any machine on the LAN:
+```bash
+ssh root@192.168.1.1
+```
+
+:::tip Console vs SSH
+Using SSH provides a much better experience for configuration with full copy/paste support and proper keyboard layout. The Proxmox console is primarily useful for troubleshooting network issues or when SSH is unavailable.
+:::
+
+### 3.5 Temporary Firewall Rule
 
 Create a temporary WAN firewall rule to explicitly allow HTTPS access (Port 443) to the OPNsense firewall. This is a crucial step to ensure you maintain access to the web interface after the firewall settings are reloaded and the temporary deactivation is undone.
 
@@ -223,6 +261,8 @@ Once you've confirmed basic connectivity and are satisfied with your initial con
 
 
 This OPNsense setup provides a robust foundation for a secure private cloud. Future steps will typically involve connecting virtual machines to the newly configured LAN and setting up a Reverse Proxy to securely access services from the internet.
+
+
 
 ## Additional Resources
 

@@ -27,7 +27,6 @@ dig pangolin.yourdomain.com +short
 
 **Check Traefik Logs:**
 ```bash
-cd /opt/pangolin
 docker compose logs traefik
 ```
 

@@ -35,7 +35,7 @@ Create a new LXC container in Proxmox with the following specifications:
   - Disk: 16 GB
 
 **Network:**
-- **Bridge**: `vmbr1` (your private LAN, as configured in [OPNsense Setup](./opnsense-setup.mdx))
+- **Bridge**: `vmbr1` (your private LAN, as configured in [OPNsense Setup](../opnsense-setup.mdx))
 - **IPv4**: Static (e.g., `192.168.1.50/24`)
 - **Gateway**: Your OPNsense LAN IP (e.g., `192.168.1.1`)
 - **IPv6**: If not required, leave all IPv6-related fields empty.

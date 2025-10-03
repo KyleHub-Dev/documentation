@@ -389,10 +389,9 @@ This process can take 2-5 minutes. Be patient.
 When everything works correctly, you'll see:
 - `Starting provider *acme.Provider`
 - `Testing certificate renew...`
-- `Trying to challenge with DNS-01`
-- `Certificate obtained for domain pangolin.kylehub.dev`
+- `Register...` (this is where Traefik waits)
 
-If you see errors instead, refer to **[Troubleshooting](./6-troubleshooting.md#ssl-certificate-issues)** for solutions.
+**The logs will pause here - this is normal!** Traefik only generates certificates when you actually access your domain.
 :::
 
 ## 5. Next Steps
