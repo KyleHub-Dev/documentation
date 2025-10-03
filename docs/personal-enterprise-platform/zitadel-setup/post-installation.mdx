@@ -9,7 +9,24 @@ tags:
 
 # Post-Installation
 
-## 1. Access Zitadel
+## 1. Create Pangolin Resource for Access
+
+Before accessing Zitadel, you need to create a resource in Pangolin to access it through your private LAN:
+
+1. After creating the site, click on the **Resources** tab in the left sidebar
+2. Click **Add Resource**
+3. Configure the Zitadel resource:
+   - **Name**: `Zitadel Dashboard` (or any descriptive name)
+   - **Resource Type**: `HTTP Resource` (select this since Zitadel expects HTTP internally)
+   - **Subdomain**: `auth` (or `auth.yourdomain.com` as the full domain)
+   - **Method/Protocol**: `http` (Pangolin handles SSL externally, Zitadel expects HTTP internally)
+   - **IP/Hostname**: `192.168.1.51` (Zitadel container's internal IP)
+   - **Port**: `8080` (Zitadel web interface port)
+4. Click **Save** or **Create**
+
+**Note**: We use HTTP for the Pangolin resource because Zitadel is configured with `ExternalSecure: false`, meaning it expects HTTP traffic internally. Pangolin provides the SSL encryption for external access.
+
+## 2. Access Zitadel
 
 Once installation completes, you'll see:
 
@@ -21,11 +38,22 @@ Access it using the following URL:
     http://YOUR_IP:8080/ui/console
 ```
 
-1. Open your browser and navigate to `http://YOUR_IP:8080/ui/console`
-2. Complete the initial setup wizard
-3. Create your first organization and admin user
+**Default Login Credentials:**
+- **Username**: `zitadel-admin@zitadel.localhost`
+- **Password**: `Password1!`
 
-## 2. Retrieve Credentials
+**Important**: Change this default password immediately after first login!
+
+1. Open your browser and navigate to `https://auth.kylehub.dev/ui/console`
+2. Login with the default credentials above
+3. The initial setup wizard will guide you through:
+   - Creating/changing your organization settings
+   - Updating the administrator account
+   - Configuring basic settings
+4. **Immediately change the default password** to a strong, unique password
+5. Save the new credentials securely
+
+## 3. Retrieve Credentials
 
 Database credentials are stored in the container:
 
@@ -42,15 +70,37 @@ You'll find:
 
 **Important**: Store these credentials securely!
 
-## 3. Configuration File
+## 4. Configuration File
 
 The Zitadel configuration is located at:
 ```
 /opt/zitadel/config.yaml
 ```
 
-After making changes to the config, run:
+### 4.1 Set External Domain
+
+For Zitadel to work properly when accessed through Pangolin (or any reverse proxy), you need to set the external domain:
+
+1. In Proxmox web interface, click on the Zitadel container (ID 201)
+2. Click the **Console** button to open a terminal session
+3. Login with your root account credentials
+
+4. Edit the configuration:
 ```bash
+nano /opt/zitadel/config.yaml
+```
+
+5. Update the `ExternalDomain` setting:
+```yaml
+ExternalDomain: auth.kylehub.dev
+ExternalSecure: false  # Set to false when using Pangolin (SSL termination handled by Pangolin)
+```
+
+6. Save and exit (Ctrl+O, Enter, Ctrl+X)
+
+7. Make the rerun script executable and run it:
+```bash
+chmod +x ~/zitadel-rerun.sh
 ~/zitadel-rerun.sh
 ```
 
@@ -58,3 +108,67 @@ This helper script will:
 1. Stop Zitadel
 2. Apply configuration changes
 3. Restart the service
+
+After running the rerun script, Zitadel should be accessible at `https://auth.kylehub.dev/ui/console`.
+
+**Troubleshooting**: If you get "[unknown] Failed to fetch" errors, especially on user profile pages, check the [Network Configuration troubleshooting](../network-configuration.mdx#212-frontend-api-communication-issues) section.
+
+## 5. Secure Initial Setup
+
+**Important**: After logging in with the default credentials, immediately secure your account and disable self-registration.
+
+1. You should now be logged in with the default administrator account
+2. **Change the default password**:
+   - Go to your profile/settings
+   - Update to a strong, unique password
+   - Save the changes
+3. **Disable self-registration**:
+   - Navigate to **Settings** → **Login Settings** (or **Organization** → **Login Behavior**)
+   - Find the "Allow users to register themselves" option
+   - Set it to **Disabled** or **Off**
+   - Save the changes
+
+This ensures your account is secure and only administrators can create new user accounts.
+
+## 6. Configure User Registration (Optional)
+
+If you want to create users without requiring email verification:
+
+1. Navigate to **Settings** → **Login Settings**
+2. **Disable email verification** for user registration:
+   - Look for "Email verification required" or similar option
+   - Set it to **Disabled** or **Not Required**
+3. **Alternatively, configure SMTP** if you want email verification:
+   - Go to **Settings** → **SMTP Settings**
+   - Configure your SMTP server details (host, port, credentials)
+   - Test the configuration
+
+**Note**: For personal/internal use, disabling email verification is often preferred to avoid SMTP setup complexity.
+
+### 6.1 Alternative: Create Users as Admin (Without Email Verification)
+
+If you prefer to keep email verification enabled but need to create users without SMTP:
+
+1. **Create users directly as an administrator**:
+   - Go to **Users** → **Create User**
+   - Fill in user details (email, username, etc.)
+   - **Important**: Check for options like "Send invitation email" or "Skip email verification"
+   - Set a temporary password directly in the user creation form
+
+2. **Retrieve verification codes from Zitadel logs** (if email verification is required):
+   ```bash
+   # In the container console
+   journalctl -u zitadel -f | grep -i "verification\|code\|email"
+   ```
+   This may show verification codes in the logs.
+
+3. **Check the database directly** (advanced):
+   ```bash
+   # Access PostgreSQL
+   sudo -u postgres psql -d zitadel
+   
+   # Query for verification codes (be careful with production data)
+   SELECT * FROM auth.verification_codes ORDER BY created_at DESC LIMIT 5;
+   ```
+
+**Recommended**: Disable email verification entirely for personal setups - it's simpler and more practical.

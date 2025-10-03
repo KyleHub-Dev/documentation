@@ -10,42 +10,136 @@ tags:
 
 # Network Configuration
 
-## 1. Change External Domain
+## 1. External Domain Setup
 
-By default, Zitadel uses the container's IP address. To use a custom domain:
+**Note**: External domain configuration is covered in the [Post-Installation](../post-installation.mdx#41-set-external-domain) section. Please follow those steps first before proceeding with network configuration.
 
-1. Edit the configuration:
-```bash
-nano /opt/zitadel/config.yaml
-```
+## 2. Pangolin Integration
 
-2. Update the `ExternalDomain` field:
-```yaml
-ExternalDomain: auth.yourdomain.com
-ExternalSecure: true  # Set to true for HTTPS
-```
+When using Pangolin as your access method, no additional reverse proxy configuration is needed. The Pangolin resource you created in the post-installation steps handles the secure tunneling to your private LAN.
 
-3. Apply changes:
-```bash
-~/zitadel-rerun.sh
-```
+### 2.1 Troubleshooting Access Issues
 
-## 2. Enable HTTPS/TLS
+If you're still getting an Internal Server Error after setting up the Pangolin resource and configuring the external domain:
 
-For production use, enable TLS:
+1. **Verify Zitadel Service Status**:
+   ```bash
+   systemctl status zitadel
+   ```
 
-```yaml
-TLS:
-  Enabled: true
-  CertPath: "/path/to/cert.pem"
-  KeyPath: "/path/to/key.pem"
-```
+2. **Check Zitadel Logs**:
+   ```bash
+   journalctl -u zitadel -n 50 --no-pager
+   ```
 
-## 3. Reverse Proxy Setup
+3. **Verify External Domain Configuration**:
+   - Ensure `ExternalDomain: auth.kylehub.dev` is set in `/opt/zitadel/config.yaml`
+   - Ensure `ExternalSecure: false` is set (when using Pangolin)
+   - Confirm the rerun script was executed successfully
 
-For production deployments, use a reverse proxy (nginx, Traefik, Caddy):
+4. **Check Pangolin Resource Configuration**:
+   - Verify the resource is created with the correct IP (192.168.1.51) and port (8080)
+   - Ensure the resource type is `HTTP Resource` (not HTTPS)
+   - Ensure the method/protocol is `http` (not https)
+   - Ensure the subdomain is set to `auth` or your configured subdomain
+   - Confirm the resource is active and not paused
 
-Example Nginx configuration:
+5. **Check Pangolin Resource**:
+   - Ensure the resource allows API calls (some tunneling solutions need specific configuration for API endpoints)
+   - Try accessing the API directly: `https://auth.kylehub.dev/oauth/v2/keys`
+   - If API calls fail but the main interface loads, Pangolin may need additional configuration for API routes
+
+6. **Test API Endpoints Directly**:
+   ```bash
+   # Test various API endpoints
+   curl -i https://auth.kylehub.dev/oauth/v2/keys
+   curl -i https://auth.kylehub.dev/oidc/v1/userinfo
+   curl -i https://auth.kylehub.dev/debug/healthz
+   ```
+   These should return valid responses, not connection errors.
+
+6. **Check Network Listening**:
+   ```bash
+   # Check what ports Zitadel is listening on
+   ss -tlnp | grep :8080
+   
+   # Check if port 8080 is accessible from host
+   curl http://localhost:8080/ui/console
+   ```
+
+7. **Restart Services if Needed**:
+   ```bash
+   systemctl restart zitadel
+   ```
+
+### 2.1.2 Frontend API Communication Issues
+
+If you get "[unknown] Failed to fetch" errors in the Zitadel console (especially on pages like `/users/me`) or when trying to access container commands:
+
+**This indicates the frontend cannot communicate with the Zitadel API or container access is blocked.**
+
+**For Pangolin users**, this can happen due to API endpoint configuration or resource restrictions. Try these fixes:
+
+1. **Check API Endpoint Configuration**:
+   ```bash
+   # In the container console
+   nano /opt/zitadel/config.yaml
+   ```
+   
+   Ensure you have the correct API configuration:
+   ```yaml
+   ExternalDomain: auth.kylehub.dev
+   ExternalSecure: false
+   Port: 8080
+   ExternalPort: 8080
+   ```
+
+2. **Restart Zitadel**:
+   ```bash
+   systemctl restart zitadel
+   ```
+
+3. **Clear Browser Cache**:
+   - Hard refresh (Ctrl+F5 or Cmd+Shift+R)
+   - Clear browser cache for the domain
+
+4. **Check Pangolin Resource**:
+   - Ensure the resource allows API calls (some tunneling solutions need specific configuration for API endpoints)
+   - Try accessing the API directly: `https://auth.kylehub.dev/oauth/v2/keys`
+   - **Important**: Verify that Pangolin allows WebSocket connections and long-running requests
+
+5. **Alternative: Direct Container Access**:
+   If Pangolin blocks console access, use Proxmox directly:
+   ```bash
+   # From Proxmox host (not through Pangolin)
+   pct enter 201
+   # Then run your commands
+   journalctl -u zitadel -f | grep -i "verification\|code\|email"
+   ```
+
+6. **Test API Endpoints Directly**:
+   ```bash
+   # Test various API endpoints
+   curl -i https://auth.kylehub.dev/oauth/v2/keys
+   curl -i https://auth.kylehub.dev/oidc/v1/userinfo
+   curl -i https://auth.kylehub.dev/debug/healthz
+   ```
+   These should return valid responses, not connection errors.
+
+7. **Debug Network Connectivity**:
+   ```bash
+   # From Proxmox host, test container connectivity
+   pct exec 201 -- curl -s http://localhost:8080/debug/healthz
+   pct exec 201 -- systemctl status zitadel
+   ```
+
+If the direct access works but Pangolin doesn't, the issue is likely with how Pangolin handles API requests or console access.
+
+### 2.2 Alternative Access Methods
+
+If you prefer not to use Pangolin, you can set up traditional reverse proxy solutions:
+
+#### Nginx Configuration
 ```nginx
 server {
     listen 443 ssl http2;
@@ -55,11 +149,28 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://YOUR_ZITADEL_IP:8080;
+        proxy_pass http://192.168.1.51:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
+```
+
+#### Traefik Configuration
+```yaml
+http:
+  routers:
+    zitadel:
+      rule: "Host(`auth.yourdomain.com`)"
+      service: zitadel
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    zitadel:
+      loadBalancer:
+        servers:
+        - url: "http://192.168.1.51:8080"
 ```
