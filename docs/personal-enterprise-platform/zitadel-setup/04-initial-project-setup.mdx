@@ -1,0 +1,68 @@
+---
+title: Initial Project Setup
+sidebar_position: 4
+tags:
+  - Zitadel
+  - IAM
+  - Projects
+  - Users
+---
+
+# Bootstrap Your First Zitadel Project
+
+With Zitadel running behind Pangolin, the next step is to replace the bootstrap admin with a dedicated project and owner account. This keeps day-to-day access separate from the installation credentials and prepares Pangolin for single sign-on.
+
+## 1. Create a dedicated project
+
+1. Log into the Zitadel console using the default administrator account.
+2. Select your organization from the sidebar and click **Projects → Create Project**.
+3. Provide a name such as `Core Platform` or `Pangolin Access`.
+4. Leave the initial settings as defaults and confirm.
+
+The project becomes the container for all future clients, APIs, and service users.
+
+## 2. Define roles for the project
+
+1. Inside the project, open the **Roles** tab.
+2. Add at least one role, for example:
+   - `iam.owner` – Full administrative access
+   - `iam.viewer` – Read-only access (optional)
+3. Save your changes.
+
+You can add more granular roles later when integrating applications.
+
+## 3. Create your primary user (IAM owner)
+
+1. Navigate to **Users → Create Human User**.
+2. Enter your name and email address. Use an email you control (even if you disabled email verification).
+3. Assign a temporary password or choose "Set password on first login".
+4. After the user is created, open the **Memberships** tab and assign the project role `iam.owner`.
+
+This account replaces the bootstrap admin for routine administration tasks.
+
+### 3.1 Optional: Enforce multi-factor authentication
+
+If you plan to expose Zitadel publicly, enable MFA for the new owner account:
+
+1. Log out and log back in as the new user.
+2. Navigate to **Profile → Security → Multi-factor**.
+3. Enroll an authenticator app or WebAuthn security key.
+
+## 4. Retire or demote the bootstrap admin
+
+The installation user (`zitadel-admin@zitadel.localhost`) was meant for initial setup only. After verifying your new owner login works:
+
+1. Sign back in as the bootstrap admin.
+2. Remove its project memberships or deactivate the account entirely.
+
+This ensures only the new dedicated account can administer the environment.
+
+## 5. Prepare for Pangolin SSO configuration
+
+Keep the following details handy—they will be required when Pangolin delegates authentication to Zitadel:
+
+- Project name and ID
+- Human user (IAM owner) credentials
+- Any additional roles you want to surface to Pangolin (for example `iam.viewer`)
+
+Continue with the [Pangolin Auth Provider Setup](10-pangolin-auth-provider-setup.mdx) guide to connect Zitadel as Pangolin's OpenID Connect provider. For advanced reverse-proxy tuning or troubleshooting, see the optional [Network Configuration Reference](08-network-configuration.mdx).

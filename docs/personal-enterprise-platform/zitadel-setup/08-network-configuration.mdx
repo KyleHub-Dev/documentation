@@ -1,0 +1,143 @@
+title: Network Configuration Reference
+sidebar_position: 8
+tags:
+  - Network
+  - Domain
+  - HTTPS
+  - Reverse Proxy
+  - OPNsense
+  - Pangolin
+---
+
+# Network Configuration (Optional Reference)
+
+This optional reference explains the end-to-end path a request takes through OPNsense, Pangolin (Traefik), and Zitadel. Use it when you need to validate or troubleshoot the reverse-proxy layer beyond the quick-start steps in the earlier guides.
+
+## Architectural blueprint
+
+### Request lifecycle recap
+
+1. Public DNS resolves `zitadel.yourdomain.com` to the OPNsense WAN IP.
+2. OPNsense receives TLS traffic on ports 80/443 and forwards it to the Pangolin LXC.
+3. Pangolin's Traefik instance terminates TLS and manages certificates via Let's Encrypt.
+4. Traefik proxies an HTTP/2 (h2c) request to Zitadel's internal IP/port (default `8080`).
+5. Zitadel processes the request, relying on preserved headers to resolve the correct instance.
+6. Responses return through Pangolin, are re-encrypted, traverse OPNsense, and reach the client.
+
+Maintain a mapping table so every component stays aligned with static addressing:
+
+| Component | LXC/VM ID | Hostname | IP (vmbr1) | Listened ports |
+| --------- | --------- | -------- | ---------- | -------------- |
+| OPNsense  | VM (100)  | `opnsense.lan` | `192.168.1.1` | WAN 80/443 |
+| Pangolin  | 200       | `pangolin` | `192.168.1.50` | 80/443 |
+| Zitadel   | 201       | `zitadel` | `192.168.1.51` | 8080 |
+
+### Zitadel-specific proxy requirements
+
+- **Host header preservation**: Zitadel resolves multi-tenant instances via `Host`; never allow Traefik to rewrite it to an internal IP.
+- **HTTP/2 end-to-end**: gRPC APIs require HTTP/2. When TLS terminates at Pangolin, Traefik must continue communicating with Zitadel using cleartext `h2c`.
+- **Secure scheme awareness**: Always set `X-Forwarded-Proto: https` so Zitadel issues secure redirects and cookies despite the internal HTTP hop.
+
+The remaining phases detail how to satisfy these requirements across OPNsense, Pangolin, and Zitadel.
+
+## Phase 1: Configure Pangolin routing
+
+1. In the Pangolin dashboard, open **Resources → Add Resource** and create one named `Zitadel` with subdomain `zitadel`.
+2. In **Connectivity**, configure the target with `http` method, IP `192.168.1.51`, and port `8080`. Pangolin handles TLS at the edge; the backend remains HTTP.
+3. Save the resource. At this point the request path is functional but Zitadel will display `Instance not found` until the remaining phases are complete.
+
+## Phase 2: Align Zitadel with the proxy
+
+1. Edit `/opt/zitadel/config.yaml` on the Zitadel LXC.
+2. Set:
+
+```yaml
+ExternalDomain: 'zitadel.yourdomain.com'
+ExternalPort: 443
+ExternalSecure: true
+```
+
+3. Run `bash ~/zitadel-rerun.sh` (or `bash zitadel-rerun.sh` if using the helper script in `$HOME`) to reapply configuration.
+
+Setting `ExternalSecure: true` ensures Zitadel respects the HTTPS origin even though Pangolin communicates via HTTP internally.
+
+## Phase 3: Apply Traefik middleware for headers
+
+1. Locate Pangolin's Traefik configuration directory (refer to the Pangolin setup docs for the installer path) and back up `traefik_config.yml`.
+2. Add the middleware definition:
+
+```yaml
+http:
+  middlewares:
+    zitadel-headers:
+      headers:
+        hostsProxyHeaders:
+          - "Host"
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"
+```
+
+3. Attach the middleware to the Zitadel router via the dynamic configuration file or Docker labels, for example:
+
+```
+traefik.http.routers.zitadel.middlewares=zitadel-headers@file
+```
+
+4. Restart the Pangolin stack so Traefik reloads the configuration. Keep a copy of these customizations because future Pangolin updates may overwrite them.
+
+## Phase 4: Validation workflow
+
+Perform the following checks each time you adjust the configuration:
+
+- **External access**: From outside your LAN, browse to `https://zitadel.yourdomain.com` and confirm the Let's Encrypt certificate is valid.
+- **Application availability**: Ensure the Zitadel console loads and accepts administrator credentials stored in `~/zitadel.creds`.
+- **Internal access**: Repeat from within the LAN to verify NAT reflection or DNS overrides.
+- **Header inspection**: In browser developer tools, inspect requests to guarantee the `Host` header remains `zitadel.yourdomain.com` and `X-Forwarded-Proto` equals `https`.
+
+## Troubleshooting quick reference
+
+| Symptom | Likely source | Next steps |
+| ------- | ------------- | ---------- |
+| `Instance not found` page | Middleware missing or typo in `ExternalDomain` | Confirm middleware is active, verify header values via developer tools. |
+| `502 Bad Gateway` | Pangolin cannot reach Zitadel | From Pangolin, run `curl http://192.168.1.101:8080`. Check Traefik logs and Zitadel service status. |
+| `ERR_TOO_MANY_REDIRECTS` | `X-Forwarded-Proto` absent or `ExternalSecure` incorrect | Reapply middleware, ensure `ExternalSecure: true`, clear cookies before retesting. |
+| TLS certificate errors | ACME challenge blocked | Ensure port 80 forward is active, DNS A record points to OPNsense WAN IP, inspect Traefik logs for ACME failures. |
+
+## Alternative reverse proxies
+
+If you decide to bypass Pangolin entirely, the following baseline configurations preserve the required headers:
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name auth.yourdomain.com;
+
+    ssl_certificate /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://192.168.1.101:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+```yaml
+http:
+  routers:
+    zitadel:
+      rule: "Host(`auth.yourdomain.com`)"
+      service: zitadel
+      tls:
+        certResolver: letsencrypt
+
+  services:
+    zitadel:
+      loadBalancer:
+        servers:
+          - url: "http://192.168.1.101:8080"
+```
+
+These examples remain helpful for local testing or secondary access paths.
