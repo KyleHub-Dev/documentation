@@ -1,6 +1,6 @@
 ---
 title: Pangolin Auth Provider Setup
-sidebar_position: 10
+sidebar_position: 5
 tags:
   - Pangolin
   - Authentication
@@ -12,17 +12,26 @@ tags:
 
 With Zitadel published through Pangolin, the next step is to delegate Pangolin authentication to Zitadel. This guide walks through creating a dedicated OIDC application in Zitadel, wiring it into Pangolin, and validating the single sign-on flow.
 
+## Understanding Projects vs Applications in Zitadel
+
+For setting up Zitadel as an authentication provider, you need **both** a Project and an Application:
+
+- **Project**: The organizational container that holds users, roles, and applications. It defines the scope of access and permissions.
+- **Application**: The specific OIDC/OAuth2 client configuration within a project. It contains the technical details like redirect URIs, client credentials, and authentication flows.
+
+You'll create a project first (e.g., "Pangolin Access"), then add a web application within that project for the OIDC integration.
+
 ## Prerequisites
 
-- Zitadel is reachable at `https://zitadel.yourdomain.com` and configured according to the [Network Configuration](08-network-configuration.mdx) guide.
+- Zitadel is reachable at `https://auth.yourdomain.com` and accessible from Pangolin
 - Pangolin is live at `https://pangolin.yourdomain.com` (see the [Pangolin setup docs](../pangolin-setup/index.md)).
 - You are signed in as a Zitadel administrator and a Pangolin administrator.
 
-## Step 1 – Prepare a project and service account in Zitadel
+## Step 1 – Create a project and OIDC application in Zitadel
 
 1. Log into the Zitadel console and navigate to your organization.
 2. Create a dedicated project (e.g., **Pangolin Access**) to keep permissions scoped.
-3. Inside the project, add a **Service** → **Application** of type **Web** with the following settings:
+3. Inside the project, add an **Application** of type **Web** with the following settings:
    - **Redirect URIs**: `https://pangolin.yourdomain.com/oauth2/callback` (adjust if your Pangolin version exposes a different callback path; the UI shows the exact value when adding the provider).
    - **Post-logout redirect**: `https://pangolin.yourdomain.com`.
    - **Response types**: Authorization Code (default) with PKCE enabled.
