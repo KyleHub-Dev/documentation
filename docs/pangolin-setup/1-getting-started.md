@@ -23,16 +23,10 @@ Create a new LXC container in Proxmox with the following specifications:
 - **Password**: Enter and confirm a strong password. (Alternative: Use a SSH Key)
 
 **Resources:**
-- **Recommended**:
-  - CPU: 4 cores
-  - RAM: 4096 MB (4 GB)
-  - Swap: 512 MB
-  - Disk: 32 GB
-- **Minimum**:
-  - CPU: 2 cores
-  - RAM: 2048 MB (2 GB)
-  - Swap: 512 MB
-  - Disk: 16 GB
+- CPU: 2 cores
+- RAM: 2048 MB (2 GB)
+- Swap: 512 MB
+- Disk: 16 GB
 
 **Network:**
 - **Bridge**: `vmbr1` (your private LAN, as configured in [OPNsense Setup](../opnsense-setup.mdx))
