@@ -21,7 +21,7 @@ With Zitadel running behind Pangolin, the next step is to replace the bootstrap 
 4. Click the **New** button to create a new organization.
 5. **Important**: Uncheck the option **"Use your personal account as organization owner"** since you're logged in with the bootstrap `Zitadel Admin` account.
 6. Enter the organization details:
-   - **Name**: `KHOrg` (or your preferred organization name)
+   - **Name**: `KHOps` (or your preferred organization name)
    - **Domain**: `kylehub.dev` (or your domain)
 7. Click **Configure Organization Owner** to set up the initial administrator for this organization.
 8. Enter the details for your organization owner user (this will be your main managing user):
@@ -48,7 +48,7 @@ This ensures you're working within your secure organization context.
 If you want to use a custom domain instead of the default subdomain:
 
 1. Go to **Settings → Verified Domains**
-2. Click **Set as Primary** for your preferred domain (e.g., `kylehub.dev` instead of `khorg.auth.kylehub.dev`)
+2. Click **Set as Primary** for your preferred domain (e.g., `kylehub.dev` instead of `khops.auth.kylehub.dev`)
 
 ## 2.3 Optional: Enable MFA Requirements
 
@@ -92,28 +92,63 @@ Instead of creating separate projects for each service, you'll establish a singl
 ### 3.3 Create the unified OIDC application
 
 1. Inside the `KyleHub` project, go to **Applications → New**.
-2. Choose **Web** for the application type.
-3. Select **Code** as the authentication method.
-4. Name it `KyleHub-Auth`.
-5. Leave **Redirect URIs** blank for now—you'll add Pangolin's callback URL in the next guide.
-6. Click **Create** and securely save the **Client ID** and **Client Secret**.
+2. **Important**: Click **"I'm a pro, skip the wizard"** to access the detailed configuration options.
+3. Enter the application name: `KyleHub-Auth`.
+4. Choose **Web** for the application type.
+5. Configure the OAuth/OIDC settings:
+   - **Grant Types**: Select **Authorization Code** (leave others unchecked unless needed)
+   - **Response Types**: Select **Code** (Authorization Code Flow)
+   - **Authentication Method**: Select **Basic** (Client ID and Secret)
+6. Leave **Redirect URIs** blank for now—you'll add Pangolin's callback URL in the next guide.
+7. Leave **Post Logout URIs** blank (optional).
+8. Click **Create** and securely save the **Client ID** and **Client Secret** that are displayed.
 
 ### 3.4 Enable role assertions
 
-1. Still inside the `KyleHub` project, open **Settings → Role settings**.
-2. Enable **Assert roles on authentication**.
-3. Optionally enable **Check authorization on authentication** to block users without any role grants.
-4. Save the settings.
+1. Navigate back to the **Projects** view and select your **KyleHub** project.
+2. Go to the **General** tab in the project settings.
+3. Scroll down to the **Settings** section and configure the following:
+   - **Assert Roles on Authentication**: Enable this to include role information in tokens and the Userinfo endpoint
+   - **Check authorization on Authentication**: (Optional) Enable this to only allow authentication if the user has at least one role assigned
+   - **Check for Project on Authentication**: (Optional) Enable this to verify the user's organization has access to this project
+4. Click **Save** to apply the changes.
+
+:::tip
+Enabling "Assert Roles on Authentication" is essential for role-based access control. The role information will be included in ID tokens and access tokens when properly configured in the application settings (see next section).
+:::
 
 ### 3.5 Configure token output
 
 1. Navigate to **Applications → KyleHub-Auth**.
-2. Open **Settings → Token settings**.
-3. Enable:
-   - **Include user roles in ID token**
-   - **Include user roles in access token**
-4. (Optional) Change **Auth Token Type** to **JWT** for self-contained tokens.
-5. Save and note the **Authorization Endpoint** and **Token Endpoint** from the **URLs** tab for later use.
+2. Open the **Token Settings** tab.
+3. Configure the **Auth Token Type**:
+   - **Option A - JWT** (Recommended for Pangolin): Select **JWT** and enable:
+     - **Add user roles to the access token** ✓
+     - **User roles inside ID Token** ✓
+   - **Option B - Bearer** (Default): Select **Bearer**
+     - Roles are automatically included in the access token
+     - Enable **User roles inside ID Token** ✓
+4. (Optional) Enable **User Info inside ID Token** to include profile, email, phone, and address claims
+5. (Optional) Configure **ClockSkew** (0-5s) if you need to handle time synchronization issues
+6. Click **Save** to apply the changes.
+7. Switch to the **URLs** tab and note the **Authorization Endpoint** and **Token Endpoint** for later use.
+
+:::tip Which token type should I use?
+- **JWT** is recommended for Pangolin and most reverse proxy setups because:
+  - Self-contained tokens can be validated locally without calling Zitadel
+  - Faster validation (no introspection endpoint call needed)
+  - Works better with stateless authentication
+  - You have explicit control over role inclusion
+  
+- **Bearer** is suitable when:
+  - Your application needs to validate tokens against Zitadel's introspection endpoint
+  - You prefer opaque tokens for security reasons
+  - Roles are automatically included in access tokens
+:::
+
+:::warning Important for Pangolin
+For Pangolin integration, **JWT** is the recommended choice. Make sure to enable **both** role toggles so roles appear in both the ID token and access token for proper authorization.
+:::
 
 ## 4. Define Your Role Taxonomy
 
@@ -130,8 +165,6 @@ Navigate to **Projects → KyleHub → Roles → New** and create the following:
 |-----|--------------|-------------|-------|
 | `admin` | Administrator | Full access to all services and Zitadel management | `categories` |
 | `homelab` | Homelab Access | Access to all homelab infrastructure services | `categories` |
-| `media` | Media Access | Access to media management and streaming services | `categories` |
-| `finance` | Finance Access | Access to financial management services | `categories` |
 | `guest` | Guest Access | Access to public-facing services only | `categories` |
 
 ### 4.2 Create service-specific roles
@@ -141,10 +174,9 @@ Continue adding roles for each service:
 | Key | Display Name | Description | Group |
 |-----|--------------|-------------|-------|
 | `access_pangolin_ui` | Pangolin UI Access | Access to Pangolin management interface | `services` |
-| `access_grafana` | Grafana Access | Access to Grafana dashboards | `services` |
-| `access_portainer` | Portainer Access | Access to Portainer container management | `services` |
 | `access_proxmox` | Proxmox Access | Access to Proxmox virtualization | `services` |
-| `access_prometheus` | Prometheus Access | Access to Prometheus metrics | `services` |
+| `access_opnsense` | OPNsense Access | Access to OPNsense firewall | `services` |
+| `access_komodo` | Komodo Access | Access to Komodo container management | `services` |
 
 Add more service roles as you expand your infrastructure. Keep the naming convention consistent: `access_<servicename>`.
 
